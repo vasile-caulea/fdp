@@ -8,6 +8,9 @@
 #include <fstream>
 #include <sstream>
 #include <algorithm>
+#include <chrono>
+#include <ctime>
+#include <filesystem>
 
 #include "../headers/Node.hpp"
 #include "../headers/yoyo_alg.hpp"
@@ -16,13 +19,24 @@ using namespace std;
 string logFilePath;
 std::ofstream logFile;
 
-void init_log(const int pid) {
+void init_log(char *fileName, const int pid) {
+    char buff[90];
     stringstream ss;
-    ss << "./out/file_pid_" << pid;
-    logFilePath = ss.str();
-    std::remove(logFilePath.c_str());
+    time_t rawtime = time(nullptr);
+    const tm *timeinfo = localtime(&rawtime);
+    std::filesystem::path fileTestName{fileName};
+    fileTestName.replace_extension("");
+    strftime(buff, sizeof(buff), "%Y-%m-%d %H-%M-%S", timeinfo);
+    ss << "./out/" << fileTestName.filename().string() << "-" << buff;
+    const string dirPath = ss.str();
 
-    logFile.open(logFilePath, ios_base::app);
+    ss << "/file_pid_" << pid;
+    logFilePath = ss.str();
+    // cout << logFilePath << endl;
+
+    cout << dirPath << endl;
+    std::filesystem::create_directories(dirPath);
+    logFile.open(logFilePath, ios_base::out);
 }
 
 void log(const string &msg) {
@@ -38,7 +52,7 @@ int main(int argc, char **argv) {
     int id, pid, numOfNeighbors, *neighborsPIDs = nullptr;
     get_communication_graph_topology(argv[1], pid, id, gr);
 
-    init_log(pid);
+    init_log(argv[1], pid);
 
     MPI_Graph_neighbors_count(gr, pid, &numOfNeighbors);
     neighborsPIDs = new int[numOfNeighbors];
@@ -76,7 +90,7 @@ void get_communication_graph_topology(char *fileName, int &pid, int &id, MPI_Com
         }
         if (line.find("graph_nodes") != string::npos) {
             size = stoi(line.substr(line.find('-') + 1));
-            cout << "\n\n" << size << " nodes" << endl;
+            // cout << "\n\n" << size << " nodes" << endl;
         } else if (line.find("neighbors") != string::npos) {
             index = new int[size];
             int i = 0;
