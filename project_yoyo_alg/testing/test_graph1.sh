@@ -1,0 +1,1 @@
+mpirun -np 19 --oversubscribe "../cmake-build-debug/openmpi_yoyo" "../testing/graph1.txt"
